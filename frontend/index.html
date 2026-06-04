@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fastino Labs</title>
+<style>
+:root {
+  --bg:          #212121;
+  --bg-sidebar:  #171717;
+  --bg-user-msg: #2f2f2f;
+  --bg-input:    #2f2f2f;
+  --bg-code:     #1a1a1a;
+  --text:        #ececec;
+  --text-muted:  #8e8ea0;
+  --accent:      #10a37f;
+  --border:      #3d3d3d;
+  --radius:      12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+  font-size: 15px;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 260px;
+  background: var(--bg-sidebar);
+  display: flex;
+  flex-direction: column;
+  padding: 10px 8px;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #fff;
+}
+.logo-text { font-weight: 600; font-size: 14px; }
+.logo-sub  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+.new-chat-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+.new-chat-btn:hover { background: rgba(255,255,255,0.06); }
+
+.section-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 12px 4px;
+}
+
+.model-select {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 13px;
+  width: 100%;
+  cursor: pointer;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%238e8ea0'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.model-select:focus { border-color: var(--accent); }
+
+.gguf-row {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+}
+.gguf-row.visible { display: flex; }
+.gguf-input {
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: "SF Mono", monospace;
+  outline: none;
+  width: 100%;
+}
+.gguf-input:focus { border-color: var(--accent); }
+.gguf-label { font-size: 11px; color: var(--text-muted); padding: 0 2px; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 10px 12px 4px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── Main area ───────────────────────────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 0 8px;
+  scroll-behavior: smooth;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: var(--text-muted);
+  padding: 40px;
+}
+.empty-state h1 {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+.empty-state p { font-size: 15px; text-align: center; max-width: 400px; line-height: 1.6; }
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.suggestion-chip {
+  background: var(--bg-user-msg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  color: var(--text);
+}
+.suggestion-chip:hover { background: #3a3a3a; border-color: #555; }
+
+/* ── Messages ────────────────────────────────────────────────────────────── */
+.message-row {
+  max-width: 780px;
+  margin: 0 auto 6px;
+  padding: 4px 24px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+  letter-spacing: 0;
+}
+.avatar.user      { background: #5436da; }
+.avatar.assistant { background: var(--accent); }
+
+.bubble {
+  flex: 1;
+  line-height: 1.7;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.message-row.user .bubble {
+  background: var(--bg-user-msg);
+  padding: 12px 16px;
+  border-radius: 16px 16px 16px 4px;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.message-row.assistant .bubble { color: var(--text); }
+
+/* Streaming cursor */
+.cursor {
+  display: inline-block;
+  width: 2px; height: 1.1em;
+  background: var(--text);
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: blink 0.9s step-start infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* Loading dots */
+.dots { display: flex; align-items: center; gap: 4px; padding: 6px 0; }
+.dots span {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: bounce 1.2s ease-in-out infinite;
+}
+.dots span:nth-child(2) { animation-delay: 0.15s; }
+.dots span:nth-child(3) { animation-delay: 0.30s; }
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.4; }
+  40%           { transform: scale(1.1); opacity: 1; }
+}
+
+/* Code blocks inside messages */
+.bubble pre {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 10px 0;
+  overflow-x: auto;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.bubble code {
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+}
+.bubble :not(pre) > code {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.bubble p + p { margin-top: 8px; }
+
+/* ── Input area ──────────────────────────────────────────────────────────── */
+.input-area {
+  padding: 12px 24px 20px;
+  max-width: 780px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.input-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  transition: border-color 0.15s;
+}
+.input-box:focus-within { border-color: var(--accent); }
+
+textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: none;
+  min-height: 24px;
+  max-height: 180px;
+}
+textarea::placeholder { color: var(--text-muted); }
+
+.send-btn {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.send-btn:not(:disabled):hover { opacity: 0.85; transform: scale(1.05); }
+.send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.send-btn svg { width: 16px; height: 16px; fill: white; }
+
+.input-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  user-select: none;
+}
+#statusText { color: var(--accent); font-weight: 500; }
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ────────────────────────────────────────────────────────────── -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">F</div>
+    <div>
+      <div class="logo-text">Fastino Labs</div>
+      <div class="logo-sub">Inference Demo</div>
+    </div>
+  </div>
+
+  <button class="new-chat-btn" onclick="newChat()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    New Chat
+  </button>
+
+  <div class="section-label">Engine</div>
+
+  <select class="model-select" id="modelSelect" onchange="onModelChange()">
+    <option value="mock">Mock  (instant, no inference)</option>
+    <option value="ollama:gemma4:26b">Gemma 4 26B  · Ollama</option>
+    <option value="ollama:qwen2.5-coder:14b">Qwen 2.5 Coder 14B  · Ollama</option>
+    <option value="llama.cpp:custom">Custom GGUF  · llama.cpp C++</option>
+  </select>
+
+  <div class="gguf-row" id="ggufRow">
+    <div class="gguf-label">Path to .gguf file</div>
+    <input class="gguf-input" id="ggufPath"
+           placeholder="/path/to/model.gguf"
+           oninput="updateGgufModel()" />
+  </div>
+
+  <div class="sidebar-footer">
+    Gateway: rate-limit → admission → worker → SSE<br>
+    C++ engine: chunked prefill · Metal GPU
+  </div>
+</div>
+
+<!-- ── Main ───────────────────────────────────────────────────────────────── -->
+<div class="main">
+  <div class="chat-area" id="chatArea">
+    <div class="empty-state" id="emptyState">
+      <h1>Fastino Labs</h1>
+      <p>LLM inference system demo — rate limiting, chunked prefill, and SSE streaming.</p>
+      <div class="suggestions">
+        <div class="suggestion-chip" onclick="fillPrompt(this)">Explain PagedAttention</div>
+        <div class="suggestion-chip" onclick="fillPrompt(this)">What is continuous batching?</div>
+        <div class="suggestion-chip" onclick="fillPrompt(this)">How does chunked prefill work?</div>
+        <div class="suggestion-chip" onclick="fillPrompt(this)">Explain KV cache in LLMs</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-box">
+      <textarea id="msgInput" rows="1"
+                placeholder="Message Fastino…"
+                onkeydown="onKey(event)"
+                oninput="grow(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="send()" title="Send (Enter)">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <div class="input-hint">
+      Enter&nbsp;to&nbsp;send · Shift+Enter&nbsp;new&nbsp;line
+      &nbsp;·&nbsp;<span id="statusText">Ready</span>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let history   = [];   // [{role, content}]
+let streaming = false;
+
+// ── Sidebar helpers ───────────────────────────────────────────────────────────
+function onModelChange() {
+  const v = document.getElementById('modelSelect').value;
+  document.getElementById('ggufRow').classList.toggle('visible', v === 'llama.cpp:custom');
+}
+
+function updateGgufModel() {
+  const path = document.getElementById('ggufPath').value.trim();
+  const sel  = document.getElementById('modelSelect');
+  if (path) {
+    sel.value = 'llama.cpp:custom';  // keep visual selection
+  }
+}
+
+function currentModel() {
+  const sel = document.getElementById('modelSelect').value;
+  if (sel === 'llama.cpp:custom') {
+    const path = document.getElementById('ggufPath').value.trim();
+    return path ? `llama.cpp:${path}` : 'mock';
+  }
+  return sel;
+}
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function esc(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderMd(raw) {
+  // Basic markdown: code fences → <pre>, inline code, bold, italic, newlines
+  let s = esc(raw);
+  s = s.replace(/```([\s\S]*?)```/g, (_,c) => `<pre><code>${c.trim()}</code></pre>`);
+  s = s.replace(/`([^`]+)`/g,        (_,c) => `<code>${c}</code>`);
+  s = s.replace(/\*\*([^*]+)\*\*/g,  (_,c) => `<strong>${c}</strong>`);
+  s = s.replace(/\*([^*\n]+)\*/g,    (_,c) => `<em>${c}</em>`);
+  s = s.replace(/\n/g, '<br>');
+  return s;
+}
+
+function grow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 180) + 'px';
+}
+
+function scrollBottom() {
+  const ca = document.getElementById('chatArea');
+  ca.scrollTop = ca.scrollHeight;
+}
+
+function setStatus(text) {
+  document.getElementById('statusText').textContent = text;
+}
+
+// ── Chat helpers ──────────────────────────────────────────────────────────────
+function newChat() {
+  history = [];
+  document.getElementById('chatArea').innerHTML =
+    `<div class="empty-state" id="emptyState">
+       <h1>Fastino Labs</h1>
+       <p>LLM inference system demo — rate limiting, chunked prefill, and SSE streaming.</p>
+       <div class="suggestions">
+         <div class="suggestion-chip" onclick="fillPrompt(this)">Explain PagedAttention</div>
+         <div class="suggestion-chip" onclick="fillPrompt(this)">What is continuous batching?</div>
+         <div class="suggestion-chip" onclick="fillPrompt(this)">How does chunked prefill work?</div>
+         <div class="suggestion-chip" onclick="fillPrompt(this)">Explain KV cache in LLMs</div>
+       </div>
+     </div>`;
+  setStatus('Ready');
+}
+
+function fillPrompt(chip) {
+  const ta = document.getElementById('msgInput');
+  ta.value = chip.textContent;
+  grow(ta);
+  ta.focus();
+}
+
+function addRow(role, content) {
+  const empty = document.getElementById('emptyState');
+  if (empty) empty.remove();
+
+  const row = document.createElement('div');
+  row.className = `message-row ${role}`;
+
+  const initials = role === 'user' ? 'U' : 'F';
+  row.innerHTML = `
+    <div class="avatar ${role}">${initials}</div>
+    <div class="bubble"></div>`;
+
+  document.getElementById('chatArea').appendChild(row);
+  scrollBottom();
+
+  const bubble = row.querySelector('.bubble');
+  if (content) bubble.innerHTML = renderMd(content);
+  return bubble;
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+function onKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+
+async function send() {
+  const ta = document.getElementById('msgInput');
+  const text = ta.value.trim();
+  if (!text || streaming) return;
+
+  history.push({ role: 'user', content: text });
+  addRow('user', text);
+  ta.value = ''; ta.style.height = 'auto';
+
+  streaming = true;
+  document.getElementById('sendBtn').disabled = true;
+  setStatus('Generating…');
+
+  // Assistant bubble with loading dots
+  const bubble = addRow('assistant');
+  bubble.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+
+  let raw = '';          // accumulated raw text (for history)
+  let firstToken = true;
+  let ttftShown  = false;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        messages:   history,
+        model:      currentModel(),
+        max_tokens: 600,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      bubble.textContent = `Error ${res.status}: ${err.detail || res.statusText}`;
+      return;
+    }
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();            // keep incomplete line
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const payload = line.slice(6).trim();
+        if (payload === '[DONE]') break;
+
+        let data;
+        try { data = JSON.parse(payload); } catch { continue; }
+
+        if (firstToken) {
+          bubble.innerHTML = '';
+          firstToken = false;
+        }
+
+        raw += data.token;
+
+        // Show streaming text with cursor
+        bubble.innerHTML = renderMd(raw) + '<span class="cursor"></span>';
+        scrollBottom();
+
+        // Show TTFT once
+        if (!ttftShown && data.ttft_ms != null) {
+          setStatus(`TTFT ${data.ttft_ms.toFixed(0)} ms`);
+          ttftShown = true;
+        }
+      }
+    }
+
+    // Finalise — remove cursor, render markdown
+    bubble.innerHTML = renderMd(raw.trim());
+    history.push({ role: 'assistant', content: raw.trim() });
+    if (!ttftShown) setStatus('Ready');
+
+  } catch (err) {
+    bubble.textContent = `Connection error: ${err.message}`;
+    setStatus('Error');
+  } finally {
+    streaming = false;
+    document.getElementById('sendBtn').disabled = false;
+  }
+}
+</script>
+</body>
+</html>
