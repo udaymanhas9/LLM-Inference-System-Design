@@ -14,14 +14,14 @@
 | Model | 13B parameters, fp16 | Given |
 | GPU (production) | NVIDIA H100 80GB SXM | Industry standard for this scale |
 | Model weight footprint | ~26 GB fp16 (est.) | 13B × 2 bytes |
-| KV cache per token | ~1.6 KB/token (est.) | 40 layers × 2 (K+V) × 128 head_dim × 2 bytes |
-| KV memory per request | ~1.1 GB (est.) | (500 prompt + 200 response) × 1.6 KB |
+| KV cache per token | ~0.8 MB/token (est.) | 2 (K+V) × 40 layers × 40 heads × 128 head_dim × 2 bytes |
+| KV memory per request | ~560 MB (est.) | 700 tokens × 0.8 MB |
 | Available KV memory per H100 | ~50 GB (est.) | 80 GB − 26 GB weights − 4 GB overhead |
-| Concurrent requests per H100 | ~45 (est.) | 50 GB ÷ 1.1 GB, PagedAttention |
-| Decode throughput per H100 | ~2,000 tokens/s (est.) | Memory-bandwidth bound |
-| Avg generation time per request | ~0.1 s (est.) | 200 tokens ÷ 2,000 tok/s |
-| Requests in flight at steady state | ~500 (est.) | Little's Law: 5,000 RPS × 0.1 s |
-| GPUs needed | ~12 (est.) | 500 in-flight ÷ 45 per GPU, round up |
+| Concurrent requests per H100 | ~80 (est.) | 50 GB ÷ 560 MB, PagedAttention |
+| Decode throughput per H100 | ~4,000 tokens/s (est.) | Memory-bandwidth bound (~50% of H100 ceiling) |
+| Avg generation time per request | ~0.075 s (est.) | 500/20,000 prefill + 200/4,000 decode |
+| Requests in flight at steady state | ~375 (est.) | Little's Law: 5,000 RPS × 0.075 s |
+| GPUs needed | ~8–10 (est.) | 375 in-flight ÷ 80 per GPU + burst headroom |
 | Target SLA | P95 TTFT + streaming < 2 s | Given |
 | Multi-tenant | Yes — token-bucket per tenant | Given |
 
